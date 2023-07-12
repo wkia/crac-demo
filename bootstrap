@@ -1,0 +1,2 @@
+#!/bin/sh
+$LAMBDA_TASK_ROOT/app/jdk/bin/java -XX:CRaCRestoreFrom=$LAMBDA_TASK_ROOT/app/app-image
