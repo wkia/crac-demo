@@ -3,9 +3,7 @@ set -e
 
 APP=spring-boot-app
 
-docker kill $(docker ps -qf "name=crac-demo") || true
-docker image rm crac-demo:$APP-builder || true
-docker image rm crac-demo:$APP-checkpoint || true
+docker kill $(docker ps -qf "name=crac-demo") 2>/dev/null || true
 
 case $(uname -m) in
     arm64)   CRAC_TARGET=aarch64 ;;
@@ -49,18 +47,21 @@ echo ======
 
 rm -f runtime.tar.gz
 echo Requesting for checkpoint...
-wget -o /dev/null --tries=1 --post-data '' http://localhost:8080/checkpoint || true
+wget -o /dev/null --tries=1 http://localhost:8080/checkpoint || true
 
 echo "Waiting for checkpoint completed..."
 sleep 10
+
+echo Checking checkpoint is completed successfully...
+docker exec -it crac-demo ls /app/app-image/cppath
 
 echo Creating lambda package for restore...
 rm -rf runtime.tar.gz
 docker exec -it crac-demo tar czf runtime.tar.gz /app bootstrap
 docker cp crac-demo:/runtime.tar.gz runtime-$APP.tar.gz
-docker exec -it crac-demo rm runtime.tar.gz
 
 echo Creating docker image for restore...
+docker exec -it crac-demo rm runtime.tar.gz entrypoint.sh
 docker commit --change='ENTRYPOINT ["bash", "/bootstrap"]' $(docker ps -qf "name=crac-demo") crac-demo:$APP-checkpoint
 
 echo Killing builder container...
