@@ -28,17 +28,16 @@ fi
 
 (cd $APP && mvn clean package)
 
-FUNCTION_JAR=`find $APP/target -name '*.jar'`
+FUNCTION_JAR=$APP/target/app.jar
 
 docker build -t crac-demo:$APP-builder --build-arg FUNCTION_JAR=$FUNCTION_JAR .
 docker run -d --privileged --rm --name=crac-demo -p 8080:8080 crac-demo:$APP-builder
 
 echo "Waiting for service is up..."
-sleep 5
+rm -f index.html && wget -o wget.log http://localhost:8080
 echo "Warming up the app..."
-rm -f index.html && wget -o wget.log --tries=2 http://localhost:8080
-rm -f index.html && wget -o wget.log --tries=2 http://localhost:8080
-rm -f index.html && wget -o wget.log --tries=2 http://localhost:8080
+rm -f index.html && wget -o wget.log --tries=1 http://localhost:8080
+rm -f index.html && wget -o wget.log --tries=1 http://localhost:8080
 
 echo ======
 cat index.html
@@ -47,7 +46,7 @@ echo ======
 
 rm -f runtime.tar.gz
 echo Requesting for checkpoint...
-wget -o /dev/null --tries=1 http://localhost:8080/checkpoint || true
+docker exec -it crac-demo bash -xc "jcmd \`ps -C java -o pid=\` JDK.checkpoint"
 
 echo "Waiting for checkpoint completed..."
 sleep 10
